@@ -1,0 +1,63 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
+import time
+
+# Función para codificar el mensaje
+def encode_message(qc, msg, qr, ancilla):
+    for i in range(len(msg)):
+        if msg[i] == '1':
+            qc.x(qr[i])
+    qc.barrier()
+    qc.h(qr)
+    qc.barrier()
+
+# Función para decodificar el mensaje
+def decode_message(qc, qr, cr, ancilla):
+    qc.barrier()
+    qc.h(qr)
+    qc.measure(qr, cr)
+
+# Función para enviar el mensaje
+def send_message(qc, msg, qr, cr, ancilla, backend):
+    encode_message(qc, msg, qr, ancilla)
+    qc.draw(output='mpl')
+    job = execute(qc, backend=backend, shots=1)
+    qc_result = job.result()
+    time.sleep(5) # Simulando la transmisión del mensaje
+    msg_received = str(qc_result.get_counts(qc))[2:][::-1]
+    return msg_received
+
+# Función para recibir el mensaje
+def receive_message(qc, qr, cr, ancilla, backend):
+    qc = QuantumCircuit(qr, cr)
+    qc.draw(output='mpl')
+    job = execute(qc, backend=backend, shots=1)
+    qc_result = job.result()
+    time.sleep(5) # Simulando la recepción del mensaje
+    msg_received = str(qc_result.get_counts(qc))[2:][::-1]
+    return msg_received
+
+# Crear un registro cuántico de 3 qubits y un registro clásico de 3 bits
+qr = QuantumRegister(3)
+cr = ClassicalRegister(3)
+
+# Crear el circuito cuántico
+qc = QuantumCircuit(qr, cr)
+
+# Definir el mensaje
+msg = '010'
+
+# Definir el backend
+backend = Aer.get_backend('qasm_simulator')
+
+# Enviar el mensaje
+msg_received = send_message(qc, msg, qr, cr, ancilla=None, backend=backend)
+
+# Decodificar el mensaje recibido
+decode_message(qc, qr, cr, ancilla=None)
+qc.draw(output='mpl')
+
+# Recibir el mensaje
+msg_received = receive_message(qc, qr, cr, ancilla=None, backend=backend)
+
+print('Mensaje enviado:', msg)
+print('Mensaje recibido:', msg_received)
